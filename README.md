@@ -73,4 +73,4 @@ python3 main.py
 
 ## Logging
 
-The application append the downloaded albums in a file named `already_downloaded.txt`, in order to avoid duplicates.
+The application append the downloaded albums in a file named `already_downloaded.txt` to avoid duplicates.
