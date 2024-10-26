@@ -22,7 +22,6 @@ download as an argument. The downloaded content will be saved in the
 Downloads folder, organized by artwork ID.
 """
 
-
 import os
 import sys
 import re
