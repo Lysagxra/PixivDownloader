@@ -18,6 +18,7 @@ Usage:
 Run this module as a standalone script to initiate the album downloading process.
 """
 
+import os
 from album_downloader import download_album
 
 FILE = 'URLs.txt'
@@ -64,6 +65,9 @@ def process_urls(urls):
     Args:
         urls (list of str): A list of URLs to process for album downloads.
     """
+    if not os.path.exists(ALREADY_DOWNLOADED):
+        write_file(ALREADY_DOWNLOADED)
+
     already_downloaded_albums = set(read_file(ALREADY_DOWNLOADED))
 
     for url in urls:
