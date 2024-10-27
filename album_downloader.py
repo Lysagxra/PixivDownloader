@@ -46,12 +46,6 @@ DOWNLOAD_FOLDER = "Downloads"
 CHUNK_SIZE = 1024
 
 HOST_PAGE = "http://www.pixiv.net/"
-HOST_ARTWORKS_PAGE = "http://www.pixiv.net/en/artworks"
-HOST_ARTWORKS_PAGE_SECURE = "https://www.pixiv.net/en/artworks"
-
-PIXIV_SEARCH_ILLUST = "https://www.pixiv.net/ajax/search/illustrations"
-PIXIV_SEARCH_ARTWORKS = "https://www.pixiv.net/ajax/search/artworks"
-
 HEADERS = {'Referer': HOST_PAGE}
 ALT_HEADERS = {
     'User-Agent': (
