@@ -86,12 +86,13 @@ class ArtworkDownloader:
 
     Attributes:
         url (str): The URL of the artwork.
-        download_path (str, optional): The download directory for saving the
-                                       artwork.
-        artwork_id (str, optional): The ID of the artwork being downloaded.
-        data (dict, optional): Data fetched from the artwork page.
+        download_path (str): The directory for saving the artwork.
+        artwork (dict): The metadata of the artwork being downloaded.
+        artwork_id (str): The ID of the artwork being downloaded.
+        data (dict): Data fetched from the artwork page.
     """
-    def __init__(self, url, download_path=None):
+
+    def __init__(self, url, download_path):
         """
         Initializes the ArtworkDownloader with the given URL and the download
         directory.
@@ -103,6 +104,7 @@ class ArtworkDownloader:
         """
         self.url = url
         self.download_path = download_path
+        self.artwork = None
         self.artwork_id = None
         self.data = None
 
@@ -119,9 +121,9 @@ class ArtworkDownloader:
             for (_, illust_data) in self.data['illust'].items():
                 if 'userIllusts' in illust_data and \
                     self.artwork_id in illust_data['userIllusts']:
-                    artwork = illust_data['userIllusts'][self.artwork_id]
-                    directory_path = self.create_download_directory(artwork)
-                    handle_artwork_type(artwork, directory_path)
+                    self.artwork = illust_data['userIllusts'][self.artwork_id]
+                    self.download_path = self.create_download_path()
+                    self.handle_artwork_type()
 
     def fetch_artwork_data(self):
         """
@@ -161,76 +163,58 @@ class ArtworkDownloader:
         artwork_id = match.group(1)
         return artwork_id, data
 
-    def create_download_directory(self, artwork):
+    def create_download_path(self):
         """
         Creates a directory to store the downloaded artwork based on the
         page count.
 
-        Args:
-            artwork (dict): The metadata of the artwork.
-
         Returns:
             str: The path to the created directory.
         """
-        page_count = artwork.get('pageCount')
+        page_count = self.artwork.get('pageCount')
 
         if page_count > 1:
-            directory_path = os.path.join(
-                DOWNLOAD_FOLDER,
-                self.artwork_id
-            )
+            download_path = os.path.join(DOWNLOAD_FOLDER, self.artwork_id)
         else:
-            directory_path = self.download_path if self.download_path else ""
+            download_path = self.download_path
 
-        os.makedirs(directory_path, exist_ok=True)
-        return directory_path
+        os.makedirs(download_path, exist_ok=True)
+        return download_path
 
-def handle_artwork_type(artwork, directory_path):
-    """
-    Handles different types of artwork by checking if it is an image or GIF
-    and processing accordingly.
+    def handle_artwork_type(self):
+        """
+        Handles different types of artwork by checking if it is an image or GIF
+        and processing accordingly.
+        """
+        illust_type = self.artwork.get('illustType')
 
-    Args:
-        artwork (dict): The metadata of the artwork.
-        directory_path (str): The directory where the artwork should
-                              be saved.
-    """
-    illust_type = artwork.get('illustType')
+        if illust_type in (0, 1):
+            self.process_artwork_images()
+        elif illust_type == 2:
+            self.process_artwork_gifs()
 
-    if illust_type in (0, 1):
-        process_artwork_images(artwork, directory_path)
-    elif illust_type == 2:
-        process_artwork_gifs(artwork, directory_path)
+    def process_artwork_images(self):
+        """
+        Downloads individual images from the artwork and saves them in the
+        specified directory.
+        """
+        for image in range(self.artwork.get('pageCount', 1)):
+            artwork_url = self.artwork.get('url')
+            url = construct_image_url(artwork_url, image)
+            response = requests.get(url, stream=True, headers=HEADERS)
+            save_image_from_response(
+                response, url, self.artwork, self.download_path, image
+            )
 
-def process_artwork_images(artwork, directory_path):
-    """
-    Downloads individual images from the artwork and saves them in the
-    specified directory.
-
-    Args:
-        artwork (dict): The metadata of the artwork.
-        directory_path (str): The directory where the images should
-        be saved.
-    """
-    for image in range(artwork.get('pageCount', 1)):
-        artwork_url = artwork.get('url')
-        url = construct_image_url(artwork_url, image)
+    def process_artwork_gifs(self):
+        """
+        Downloads the GIF of the artwork and saves it in the specified
+        directory.
+        """
+        artwork_url = self.artwork.get('url')
+        url = construct_gif_url(artwork_url)
         response = requests.get(url, stream=True, headers=HEADERS)
-        save_image_from_response(response, url, artwork, directory_path, image)
-
-def process_artwork_gifs(artwork, directory_path):
-    """
-    Downloads the GIF of the artwork and saves it in the specified
-    directory.
-
-    Args:
-        artwork (dict): The metadata of the artwork.
-        directory_path (str): The directory where the GIF should be saved.
-    """
-    artwork_url = artwork.get('url')
-    url = construct_gif_url(artwork_url)
-    response = requests.get(url, stream=True, headers=HEADERS)
-    save_gif_from_response(response, artwork, directory_path)
+        save_gif_from_response(response, self.artwork, self.download_path)
 
 def construct_image_url(artwork_url, image):
     """
@@ -295,7 +279,6 @@ def download_with_progress(response, download_path):
     Parameters:
         response (requests.Response): The response object containing
                                       the content to be downloaded.
-
         download_path (str): The file path where the downloaded content should
                              be saved.
     """
@@ -310,7 +293,7 @@ def download_with_progress(response, download_path):
                     file.write(chunk)
                     pbar.update(task, advance=len(chunk))
 
-def save_image_from_response(response, url, artwork, directory_path, image):
+def save_image_from_response(response, url, artwork, download_path, image):
     """
     Saves the downloaded image to the specified directory.
 
@@ -318,52 +301,48 @@ def save_image_from_response(response, url, artwork, directory_path, image):
         response (requests.Response): The HTTP response containing the image.
         url (str): The URL of the image.
         artwork (dict): The metadata of the artwork.
-        directory_path (str): The directory where the image should be saved.
+        download_path (str): The directory where the image should be saved.
         image (int): The page number of the image.
 
     Raises:
-        Exception: If the image cannot be downloaded.
+        ValueError: If the response status code indicates a failure.
     """
-    if response.status_code in (200, 403):
-        file_extension = os.path.splitext(url)[-1]
-        filename_image = image
-        formatted_filename = (
-            f"{artwork.get('id')}_"
-            f"p{filename_image}_"
-            f"master1200{file_extension}"
-        )
-
-        print(f"\t[+] Downloading {formatted_filename}...")
-        final_path = os.path.join(directory_path, formatted_filename)
-        response = requests.get(url, headers=ALT_HEADERS)
-        download_with_progress(response, final_path)
-    else:
-        error_message = (
+    if response.status_code not in (200, 403):
+        raise ValueError(
             "Unable to download image, server responded with "
             f"status code: {response.status_code}"
         )
-        raise Exception(error_message)
+        
+    file_extension = os.path.splitext(url)[-1]
+    formatted_filename = (
+        f"{artwork.get('id')}_p{image}_master1200{file_extension}"
+    )
+    final_path = os.path.join(download_path, formatted_filename)
+    
+    print(f"\t[+] Downloading {formatted_filename}...")
+    response = requests.get(url, headers=ALT_HEADERS)
+    download_with_progress(response, final_path)
 
-def save_gif_from_response(response, artwork, directory_path):
+def save_gif_from_response(response, artwork, download_path):
     """
     Saves the downloaded GIF to the specified directory.
 
     Args:
         response (requests.Response): The HTTP response containing the GIF.
         artwork (dict): The metadata of the artwork.
-        directory_path (str): The directory where the GIF should be saved.
+        download_path (str): The directory where the GIF should be saved.
 
     Raises:
-        Exception: If the GIF cannot be downloaded.
+        ValueError: If the response status code indicates a failure.
     """
-    def create_gif(extracted_folder, directory_path, filename_gif):
+    def create_gif(extracted_folder, download_path, filename_gif):
         """
         Creates a GIF from the extracted frames and saves it.
 
         Args:
             extracted_folder (str): The folder containing the extracted
                                     image frames.
-            directory_path (str): The directory where the GIF should be saved.
+            download_path (str): The directory where the GIF should be saved.
             filename_gif (str): The name of the resulting GIF file.
 
         Returns:
@@ -379,45 +358,46 @@ def save_gif_from_response(response, artwork, directory_path):
             for image_file in image_files
         ]
 
-        gif_download_path = os.path.join(directory_path, filename_gif)
+        gif_download_path = os.path.join(download_path, filename_gif)
 
         images[0].save(
             gif_download_path, save_all=True, append_images=images[1:],
             loop=0, duration=100
         )
 
-    if response.status_code in (200, 403):
-        artwork_id = artwork.get('id')
-        filename_gif = f"{artwork_id}.gif"
-        formatted_filename = f"{artwork_id}.zip"
-        final_path = os.path.join(directory_path, formatted_filename)
-
-        print(f"\t[+] Downloading {filename_gif}...")
-
-        artwork_url = artwork.get('url')
-        url = construct_gif_url(artwork_url)
-
-        response = requests.get(url, headers=ALT_HEADERS)
-        download_with_progress(response, final_path)
-
+    def extract_gif(zip_path, artwork_id, download_path):
         extracted_folder = os.path.join(
-            directory_path, f"{artwork_id}_extracted"
+            download_path, f"{artwork_id}_extracted"
         )
         os.makedirs(extracted_folder, exist_ok=True)
 
-        with zipfile.ZipFile(final_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extracted_folder)
 
-        create_gif(extracted_folder, directory_path, filename_gif)
+        filename_gif = f"{artwork_id}.gif"
+        create_gif(extracted_folder, download_path, filename_gif)
 
-        os.remove(final_path)
+        os.remove(zip_path)
         shutil.rmtree(extracted_folder)
-    else:
-        error_message = (
+        print(f"\t[+] Successfully extracted {filename_gif}")
+
+    if response.status_code not in (200, 403):
+        raise ValueError(
             "Unable to download image, server responded with "
             f"status code: {response.status_code}"
         )
-        raise Exception(error_message)
+
+    artwork_id = artwork.get('id')
+    artwork_url = artwork.get('url')
+    gif_url = construct_gif_url(artwork_url)
+
+    formatted_filename = f"{artwork_id}.zip"
+    final_path = os.path.join(download_path, formatted_filename)
+
+    print(f"\t[+] Downloading {artwork_id}.gif...")
+    response = requests.get(gif_url, headers=ALT_HEADERS)
+    download_with_progress(response, final_path)
+    extract_gif(final_path, artwork_id, download_path)
 
 def get_album_id(url):
     """
@@ -440,13 +420,13 @@ def get_album_id(url):
 
 def download_album(url):
     """
-    Processes the download of an album based on the provided arguments.
+    Downloads an album from the provided URL.
 
-    Parameters:
-        args: An object containing the following attributes:
-            - url (str): The URL of the album to download.
-            - file_location (str): The path where the downloaded content should
-                                   be saved.
+    Args:
+        url (str): The URL of the album to download.
+
+    Raises:
+        ValueError: If the album ID cannot be retrieved from the URL.
     """
     album_id = get_album_id(url)
     print(f"\nDownloading Album: {COLORS['BOLD']}{album_id}{COLORS['END']}")
@@ -460,10 +440,8 @@ def main():
     """
     The main entry point for the application.
 
-    Parameters:
-        args (list, optional): A list of command-line arguments. If not
-                               provided, it will use the argument parser
-                               to obtain them.
+    Raises:
+        SystemExit: If the incorrect number of arguments is provided.
     """
     if len(sys.argv) != 2:
         print(f"Usage: python3 {SCRIPT_NAME} <album_url>")
