@@ -1,4 +1,4 @@
-# Simple Bunkr Downloader
+# Simple Pixiv Downloader
 
 > A Python-based tool for downloading Pixiv albums. This tool reads a list of URLs from a file, checks against a record of already downloaded albums to avoid duplicates, and processes the downloads accordingly.
 
