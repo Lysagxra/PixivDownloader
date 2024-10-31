@@ -6,10 +6,11 @@
 
 ## Features
 
-- Download pictures and videos from specified album URLs.
+- Downloads multiple files concurrently.
 - Handles both single album and batch downloads.
 - Avoid duplicats by comparing URLs against a record of already downloaded albums.
 - Progress indication during downloads.
+- Automatically creates a directory structure for organized storage.
 
 ## Dependencies
 
@@ -23,10 +24,13 @@
 
 ```
 project-root/
-├── album_downloader.py         # Python script to download from a Pixiv album URL
-├── main.py                     # Main Python script to run the downloader
-├── URLs.txt                    # Text file containing album URLs
-└── already_downloaded.txt      # File to record downloaded albums
+│ ├── url_utils               # Python script containing Pixiv URLs utility
+│ ├── download_utils.py       # Python script containing Pixiv downloads utility
+│ └── progress_utils.py       # Python script containing progress utility
+├── album_downloader.py       # Python script to download from a Pixiv album URL
+├── main.py                   # Main Python script to run the downloader
+├── URLs.txt                  # Text file containing album URLs
+└── already_downloaded.txt    # File to record downloaded albums
 ```
 
 ## Installation
