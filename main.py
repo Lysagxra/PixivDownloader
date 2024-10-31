@@ -83,7 +83,7 @@ def process_urls(urls):
                 else f"• Album already downloaded: {url}"
             log_status.add_task(log_message)
             live.update(combined_table)
-import time
+
 def main():
     """
     Main function to execute the script.
@@ -92,10 +92,9 @@ def main():
     to download albums while checking for previously downloaded entries, and
     clears the URL file upon completion.
     """
-    print('\n')
     urls = read_file(FILE)
     process_urls(urls)
     write_file(FILE)
-    time.sleep(5)
+
 if __name__ == '__main__':
     main()
