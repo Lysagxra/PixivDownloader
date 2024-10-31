@@ -2,24 +2,16 @@
 This module provides functionality to download albums from Pixiv URLs. It
 reads a list of URLs from a file, checks against a record of already downloaded
 albums to avoid duplicates, and processes the downloads accordingly.
-
-Key Functions:
-- read_file: Reads the contents of a specified file and returns a list of lines.
-- write_file: Writes or appends content to a specified file.
-- process_urls: Validates and downloads albums from a list of URLs.
-- main: The entry point of the module, orchestrating the reading, processing,
-        and writing of URLs.
-
-Files Used:
-- URLs.txt: The file containing the list of URLs to process.
-- already_downloaded.txt: A record of albums that have already been downloaded.
-
-Usage:
-Run this module as a standalone script to initiate the album downloading process.
 """
-
 import os
+from rich.live import Live
+from rich.table import Table
+from rich.progress import Progress
+
 from album_downloader import download_album
+from helpers.progress_utils import (
+    create_progress_bar, create_progress_table, create_log_table
+)
 
 FILE = 'URLs.txt'
 ALREADY_DOWNLOADED = 'already_downloaded.txt'
@@ -57,10 +49,8 @@ def write_file(filename, content='', mode='w'):
 def process_urls(urls):
     """
     Validates and downloads albums from a list of URLs.
-
-    This function checks each URL against a list of already downloaded albums.
-    If an album has already been downloaded, it skips the download. Otherwise,
-    it downloads the album and appends the URL to the list of downloaded albums.
+    The function also initializes progress tracking and logging, displaying
+    the status of downloads in a combined progress and log table.
 
     Args:
         urls (list of str): A list of URLs to process for album downloads.
@@ -70,14 +60,30 @@ def process_urls(urls):
 
     already_downloaded_albums = set(read_file(ALREADY_DOWNLOADED))
 
-    for url in urls:
-        if url in already_downloaded_albums:
-            print(f"Album has been already downloaded from the URL: {url}")
-            continue
+    overall_progress = create_progress_bar()
+    job_progress = create_progress_bar()
+    log_status = Progress("{task.description}")
 
-        download_album(url)
-        write_file(ALREADY_DOWNLOADED, url, mode='a')
+    progress_table = create_progress_table(overall_progress, job_progress)
+    log_table = create_log_table(log_status)
 
+    combined_table = Table.grid()
+    combined_table.add_row(progress_table)
+    combined_table.add_row(log_table)
+
+    with Live(progress_table, refresh_per_second=10) as live:
+        for url in urls:
+            to_download = url not in already_downloaded_albums
+
+            if to_download:
+                download_album(url, overall_progress, job_progress)
+                write_file(ALREADY_DOWNLOADED, url, mode='a')
+
+            log_message = f"\u2714 Album downloaded: {url}" if to_download \
+                else f"• Album already downloaded: {url}"
+            log_status.add_task(log_message)
+            live.update(combined_table)
+import time
 def main():
     """
     Main function to execute the script.
@@ -86,9 +92,10 @@ def main():
     to download albums while checking for previously downloaded entries, and
     clears the URL file upon completion.
     """
+    print('\n')
     urls = read_file(FILE)
     process_urls(urls)
     write_file(FILE)
-
+    time.sleep(5)
 if __name__ == '__main__':
     main()
