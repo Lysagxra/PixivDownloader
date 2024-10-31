@@ -2,7 +2,7 @@
 
 > A Python-based tool for downloading Pixiv albums. This tool reads a list of URLs from a file, checks against a record of already downloaded albums to avoid duplicates, and processes the downloads accordingly.
 
-![Screenshot](https://github.com/Lysagxra/SimplePixivDownloader/blob/a274f48771627db264383623af4a4da3872ac83b/misc/Screenshot.png)
+![Demo](https://github.com/Lysagxra/SimplePixivDownloader/blob/e3601bc3c697c281a2b3a468b9c86bc1f468e9b6/misc/Demo.gif)
 
 ## Features
 
