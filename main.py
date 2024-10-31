@@ -3,6 +3,7 @@ This module provides functionality to download albums from Pixiv URLs. It
 reads a list of URLs from a file, checks against a record of already downloaded
 albums to avoid duplicates, and processes the downloads accordingly.
 """
+
 import os
 from rich.live import Live
 from rich.table import Table
