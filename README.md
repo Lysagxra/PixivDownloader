@@ -7,9 +7,9 @@
 ## Features
 
 - Downloads multiple files concurrently.
-- Handles both single album and batch downloads.
+- Supports batch downloading via a list of URLs.
+- Tracks download progress with a progress bar.
 - Avoid duplicats by comparing URLs against a record of already downloaded albums.
-- Progress indication during downloads.
 - Automatically creates a directory structure for organized storage.
 
 ## Dependencies
@@ -24,11 +24,11 @@
 
 ```
 project-root/
-│ ├── url_utils               # Python script containing Pixiv URLs utility
-│ ├── download_utils.py       # Python script containing Pixiv downloads utility
-│ └── progress_utils.py       # Python script containing progress utility
-├── album_downloader.py       # Python script to download from a Pixiv album URL
-├── main.py                   # Main Python script to run the downloader
+│ ├── download_utils.py       # Script containing utilities for managing the download process
+│ ├── pixiv_utils             # Script containing Pixiv URLs utility
+│ └── progress_utils.py       # Script containing utilities for tracking download progress
+├── album_downloader.py       # Module for downloading Pixiv albums
+├── main.py                   # Main script to run the downloader
 ├── URLs.txt                  # Text file containing album URLs
 └── already_downloaded.txt    # File to record downloaded albums
 ```
@@ -37,11 +37,11 @@ project-root/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Lysagxra/SimplePixivDownloader.git
+   git clone https://github.com/Lysagxra/PixivDownloader.git
 
 2. Navigate to the project directory:
    ```bash
-   cd SimplePixivDownloader
+   cd PixivDownloader
 
 3. Install the required dependencies:
    ```bash
