@@ -10,6 +10,7 @@ import sys
 import re
 import json
 from concurrent.futures import ThreadPoolExecutor
+
 import requests
 from bs4 import BeautifulSoup
 from rich.live import Live
@@ -24,7 +25,7 @@ DOWNLOAD_FOLDER = "Downloads"
 
 HOST_PAGE = "http://www.pixiv.net/"
 TASK_COLOR = "light_cyan3"
-MAX_WORKERS = 3
+MAX_WORKERS = 10
 TIMEOUT = 10
 
 HEADERS = {'Referer': HOST_PAGE}
