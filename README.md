@@ -58,7 +58,7 @@ python3 album_downloader.py <album_url>
 
 ### Example
 ```
-python3 album_downloader.py https://www.pixiv.net/en/artworks/118267586
+python3 album_downloader.py https://www.pixiv.net/en/artworks/122835267
 ```
 
 ## Batch Download
