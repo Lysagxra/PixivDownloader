@@ -3,11 +3,9 @@ This module provides functionality to download albums from Pixiv URLs. It
 reads a list of URLs from a file, checks against a record of already downloaded
 albums to avoid duplicates, and processes the downloads accordingly.
 """
-
 import os
 from rich.live import Live
 from rich.table import Table
-from rich.progress import Progress
 
 from album_downloader import download_album
 from helpers.progress_utils import (
@@ -16,6 +14,7 @@ from helpers.progress_utils import (
 
 FILE = 'URLs.txt'
 ALREADY_DOWNLOADED = 'already_downloaded.txt'
+HOST_BASE_LINK = 'www.pixiv.net'
 
 def read_file(filename):
     """
@@ -47,6 +46,23 @@ def write_file(filename, content='', mode='w'):
     with open(filename, mode, encoding='utf-8') as file:
         file.write(f"{content}\n" if mode == 'a' else content)
 
+def manage_combined_table(live, progress_table, log_messages):
+    """
+    Manages and updates a combined table by merging progress data with log
+    messages.
+
+    Args:
+        live (Live): An instance of the Live class used for updating the
+                     display.
+        progress_table (Table): A table containing the current progress data.
+    """
+    if log_messages:
+        log_table = create_log_table(log_messages)
+        combined_table = Table.grid()
+        combined_table.add_row(progress_table)
+        combined_table.add_row(log_table)
+        live.update(combined_table)
+
 def process_urls(urls):
     """
     Validates and downloads albums from a list of URLs.
@@ -63,27 +79,21 @@ def process_urls(urls):
 
     overall_progress = create_progress_bar()
     job_progress = create_progress_bar()
-    log_status = Progress("{task.description}")
-
     progress_table = create_progress_table(overall_progress, job_progress)
-    log_table = create_log_table(log_status)
 
-    combined_table = Table.grid()
-    combined_table.add_row(progress_table)
-    combined_table.add_row(log_table)
-
+    log_messages = []
     with Live(progress_table, refresh_per_second=10) as live:
         for url in urls:
-            to_download = url not in already_downloaded_albums
+            if HOST_BASE_LINK in url:
+                to_download = url not in already_downloaded_albums
 
-            if to_download:
-                download_album(url, overall_progress, job_progress)
-                write_file(ALREADY_DOWNLOADED, url, mode='a')
+                if to_download:
+                    download_album(url, overall_progress, job_progress)
+                    write_file(ALREADY_DOWNLOADED, url, mode='a')
+                else:
+                    log_messages.append(url)
 
-            log_message = f"\u2714 Album downloaded: {url}" if to_download \
-                else f"• Album already downloaded: {url}"
-            log_status.add_task(log_message)
-            live.update(combined_table)
+        manage_combined_table(live, progress_table, log_messages)
 
 def main():
     """
