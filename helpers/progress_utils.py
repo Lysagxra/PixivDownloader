@@ -66,7 +66,7 @@ def create_progress_table(overall_progress, job_progress):
     )
     return progress_table
 
-def create_log_table(log_progress):
+def create_log_table(log_messages):
     """
     Creates a formatted log table to display downloaded messages.
 
@@ -77,12 +77,12 @@ def create_log_table(log_progress):
         Table: A rich Table object containing the formatted log panel with 
                the specified log messages.
     """
-#    log_row = "\n".join([f"• {message}" for message in log_messages])
+    log_row = "\n".join([f"• {message}" for message in log_messages])
     log_table = Table.grid()
     log_table.add_row(
         Panel(
-            log_progress,
-            title=f"[b {TITLE_COLOR}]Log Messages",
+            log_row,
+            title=f"[b {TITLE_COLOR}]Already Downloaded",
             border_style="grey35",
             padding=(1, 1),
             width=80

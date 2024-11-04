@@ -8,13 +8,14 @@ download progress using the Rich library.
 import os
 import zipfile
 import shutil
-from PIL import Image
-import requests
 
-from helpers.url_utils import construct_image_url, construct_gif_url
+import requests
+from PIL import Image
+
+from helpers.pixiv_utils import construct_image_url, construct_gif_url
 
 HOST_PAGE = "http://www.pixiv.net/"
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 64 * 1024
 TIMEOUT = 10
 
 HEADERS = {'Referer': HOST_PAGE}
