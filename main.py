@@ -7,7 +7,7 @@ import os
 from rich.live import Live
 from rich.table import Table
 
-from album_downloader import download_album
+from album_downloader import download_album, clear_terminal
 from helpers.progress_utils import (
     create_progress_bar, create_progress_table, create_log_table
 )
@@ -103,6 +103,7 @@ def main():
     to download albums while checking for previously downloaded entries, and
     clears the URL file upon completion.
     """
+    clear_terminal()
     urls = read_file(FILE)
     process_urls(urls)
     write_file(FILE)

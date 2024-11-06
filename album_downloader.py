@@ -17,18 +17,18 @@ from rich.live import Live
 
 from helpers.progress_utils import create_progress_bar, create_progress_table
 from helpers.download_utils import (
-    save_image_from_response, save_gif_from_response
+    save_image_from_response, save_gif_from_response, manage_running_tasks
 )
 
 SCRIPT_NAME = os.path.basename(__file__)
 DOWNLOAD_FOLDER = "Downloads"
-
 HOST_PAGE = "http://www.pixiv.net/"
-TASK_COLOR = "light_cyan3"
+
 MAX_WORKERS = 10
-TIMEOUT = 10
+TASK_COLOR = "light_cyan3"
 
 HEADERS = {'Referer': HOST_PAGE}
+TIMEOUT = 10
 
 class ArtworkDownloader:
     """
@@ -76,7 +76,7 @@ class ArtworkDownloader:
 
         if 'userIllusts' in illust_data and self.artwork_id in user_illusts:
             self.artwork = illust_data['userIllusts'][self.artwork_id]
-            self.download_path = self.create_download_path()
+            self.download_path = self.create_download_directory()
             self.handle_artwork_type()
             return True
 
@@ -102,7 +102,7 @@ class ArtworkDownloader:
         if 'illust' in self.data:
             self.process_artwork_from_data()
 
-    def create_download_path(self):
+    def create_download_directory(self):
         """
         Creates a directory to store the downloaded artwork based on the
         page count.
@@ -177,25 +177,6 @@ class ArtworkDownloader:
             (self.job_progress, self.overall_progress, 0, overall_task)
         )
 
-def manage_running_tasks(futures, job_progress):
-    """
-    Manages and updates the status of running tasks in a concurrent 
-    execution environment.
-
-    Parameters:
-        futures (dict): A dictionary mapping futures to their 
-                        corresponding tasks. Each future represents 
-                        an asynchronous task.
-        job_progress (Progress): An instance of a progress tracking 
-                                 object used to manage and update 
-                                 task visibility.
-    """
-    while futures:
-        for future in list(futures.keys()):
-            if future.running():
-                task = futures.pop(future)
-                job_progress.update(task, visible=True)
-
 def fetch_artwork_data(url):
     """
     Fetches the artwork data by making an HTTP request to the provided URL
@@ -250,6 +231,19 @@ def download_album(url, overall_progress, job_progress):
     )
     artwork_downloader.download()
 
+def clear_terminal():
+    """
+    Clears the terminal screen based on the operating system.
+    """
+    commands = {
+        'nt': 'cls',      # Windows
+        'posix': 'clear'  # macOS and Linux
+    }
+
+    command = commands.get(os.name)
+    if command:
+        os.system(command)
+
 def main():
     """
     The main entry point for the application.
@@ -261,6 +255,7 @@ def main():
         print(f"Usage: python3 {SCRIPT_NAME} <album_url>")
         sys.exit(1)
 
+    clear_terminal()
     url = sys.argv[1]
 
     overall_progress = create_progress_bar()
