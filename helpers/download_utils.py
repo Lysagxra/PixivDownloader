@@ -142,6 +142,25 @@ def save_gif_from_response(artwork, download_path, task_info):
     download_with_progress(response, zip_path, task_info, is_gif=True)
     extract_gif(artwork_id, zip_path, download_path)
 
+def manage_running_tasks(futures, job_progress):
+    """
+    Manages and updates the status of running tasks in a concurrent 
+    execution environment.
+
+    Parameters:
+        futures (dict): A dictionary mapping futures to their 
+                        corresponding tasks. Each future represents 
+                        an asynchronous task.
+        job_progress (Progress): An instance of a progress tracking 
+                                 object used to manage and update 
+                                 task visibility.
+    """
+    while futures:
+        for future in list(futures.keys()):
+            if future.running():
+                task = futures.pop(future)
+                job_progress.update(task, visible=True)
+
 def download_with_progress(response, download_path, task_info, is_gif=False):
     """
     Downloads content from a response object and displays a progress bar.
