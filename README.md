@@ -36,27 +36,35 @@ project-root/
 ## Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/Lysagxra/PixivDownloader.git
+
+```bash
+git clone https://github.com/Lysagxra/PixivDownloader.git
+```
 
 2. Navigate to the project directory:
-   ```bash
-   cd PixivDownloader
+
+```bash
+cd PixivDownloader
+```
 
 3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Single Album Download
 
 To download a single album from an URL, you can use `album_downloader.py`, running the script with a valid album URL.
 
 ### Usage
+
 ```bash
 python3 album_downloader.py <album_url>
 ```
 
 ### Example
+
 ```
 python3 album_downloader.py https://www.pixiv.net/en/artworks/122835267
 ```
@@ -70,9 +78,11 @@ To batch download from multiple album URLs, you can use the `main.py` script. Th
 1. Create a file named `URLs.txt` in the root of your project, listing each URL on a new line.
 
 2. Run the batch download script:
+
 ```
 python3 main.py
 ```
+
 3. The downloaded files will be saved in the `Downloads` directory.
 
 ## Logging
