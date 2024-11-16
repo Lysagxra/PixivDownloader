@@ -15,10 +15,9 @@ from PIL import Image
 from helpers.pixiv_utils import construct_image_url, construct_gif_url
 
 HOST_PAGE = "http://www.pixiv.net/"
-CHUNK_SIZE = 64 * 1024
+CHUNK_SIZE = 16 * 1024
 TIMEOUT = 10
 
-HEADERS = {'Referer': HOST_PAGE}
 ALT_HEADERS = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) '
@@ -38,11 +37,10 @@ def save_image_from_response(image_info, download_path, task_info):
     Saves the downloaded image to the specified directory.
 
     Args:
-        response (requests.Response): The HTTP response containing the image.
-        image_url (str): The URL of the image.
-        artwork (dict): The metadata of the artwork.
+        image_info (tuple): A tuple containing informations about the artwork.
         download_path (str): The directory where the image should be saved.
-        image (int): The page number of the image.
+        task_info (tuple): A tuple containing informations about the current
+                           task.
 
     Raises:
         ValueError: If the response status code indicates a failure.
@@ -73,9 +71,10 @@ def save_gif_from_response(artwork, download_path, task_info):
     Saves the downloaded GIF to the specified directory.
 
     Args:
-        response (requests.Response): The HTTP response containing the GIF.
         artwork (dict): The metadata of the artwork.
         download_path (str): The directory where the GIF should be saved.
+        task_info (tuple): A tuple containing informations about the current
+                           task.
 
     Raises:
         ValueError: If the response status code indicates a failure.
@@ -147,8 +146,8 @@ def manage_running_tasks(futures, job_progress):
     Manages and updates the status of running tasks in a concurrent 
     execution environment.
 
-    Parameters:
-        futures (dict): A dictionary mapping futures to their 
+    Args:
+        futures (dict): A dictionary mapping futures to their
                         corresponding tasks. Each future represents 
                         an asynchronous task.
         job_progress (Progress): An instance of a progress tracking 
@@ -165,11 +164,20 @@ def download_with_progress(response, download_path, task_info, is_gif=False):
     """
     Downloads content from a response object and displays a progress bar.
 
-    Parameters:
-        response (requests.Response): The response object containing
-                                      the content to be downloaded.
-        download_path (str): The file path where the downloaded content should
-                             be saved.
+    Args:
+        response (requests.Response): The response object containing the
+                                      content to be downloaded.
+        download_path (str): The file path where the downloaded content will be
+                             saved.
+        task_info (tuple): A tuple containing progress-related information:
+                        - job_progress: Manages progressfor individual tasks.
+                        - overall_progress): Manages progress for all tasks.
+                        - task: The task associated with the current download.
+                        - overall_task: The task tracking the overall download
+                                        progress.
+        is_gif (bool, optional): If True, the content is a GIF and the function
+                                 will skip progress updates for individual file
+                                 chunks. Default is False.
     """
     (job_progress, overall_progress, task, overall_task) = task_info
     file_size = int(response.headers.get('content-length', -1))
