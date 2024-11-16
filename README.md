@@ -25,13 +25,15 @@
 ```
 project-root/
 ├── helpers/
-│ ├── download_utils.py       # Script containing utilities for managing the download process
-│ ├── pixiv_utils             # Script containing Pixiv URLs utility
-│ └── progress_utils.py       # Script containing utilities for tracking download progress
-├── album_downloader.py       # Module for downloading Pixiv albums
-├── main.py                   # Main script to run the downloader
-├── URLs.txt                  # Text file containing album URLs
-└── already_downloaded.txt    # File to record downloaded albums
+│ ├── download_utils.py     # Utilities for managing the download process
+│ ├── file_utils.py         # Utilities for managing file operations
+│ ├── general_utils.py      # Miscellaneous utility functions
+│ ├── pixiv_utils           # Functions for handling Pixiv-related tasks
+│ └── progress_utils.py     # Tools for progress tracking and reporting
+├── album_downloader.py     # Module for downloading Pixiv albums
+├── main.py                 # Main script to run the downloader
+├── URLs.txt                # Text file containing album URLs
+└── already_downloaded.txt  # File to record downloaded albums
 ```
 
 ## Installation
