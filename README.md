@@ -24,6 +24,7 @@
 
 ```
 project-root/
+├── helpers/
 │ ├── download_utils.py       # Script containing utilities for managing the download process
 │ ├── pixiv_utils             # Script containing Pixiv URLs utility
 │ └── progress_utils.py       # Script containing utilities for tracking download progress
