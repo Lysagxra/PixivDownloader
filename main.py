@@ -7,44 +7,16 @@ import os
 from rich.live import Live
 from rich.table import Table
 
-from album_downloader import download_album, clear_terminal
+from helpers.file_utils import read_file, write_file
+from helpers.general_utils import clear_terminal
 from helpers.progress_utils import (
     create_progress_bar, create_progress_table, create_log_table
 )
+from album_downloader import download_album
 
 FILE = 'URLs.txt'
 ALREADY_DOWNLOADED = 'already_downloaded.txt'
 HOST_BASE_LINK = 'www.pixiv.net'
-
-def read_file(filename):
-    """
-    Reads the contents of a file and returns a list of its lines.
-
-    Args:
-        filename (str): The path to the file to be read.
-
-    Returns:
-        list: A list of lines from the file, with newline characters removed.
-    """
-    with open(filename, 'r', encoding='utf-8') as file:
-        return file.read().splitlines()
-
-def write_file(filename, content='', mode='w'):
-    """
-    Writes or appends content to a specified file.
-
-    Args:
-        filename (str): The path to the file to be written to.
-        content (str, optional): The content to write to the file.
-                                 Defaults to an empty string.
-        mode (str, optional): The mode for file operation.
-                              'w' for overwrite (default) or 'a' for append.
-
-    Raises:
-        IOError: If an error occurs while writing to the file.
-    """
-    with open(filename, mode, encoding='utf-8') as file:
-        file.write(f"{content}\n" if mode == 'a' else content)
 
 def manage_combined_table(live, progress_table, log_messages):
     """
@@ -76,12 +48,12 @@ def process_urls(urls):
         write_file(ALREADY_DOWNLOADED)
 
     already_downloaded_albums = set(read_file(ALREADY_DOWNLOADED))
+    log_messages = []
 
     overall_progress = create_progress_bar()
     job_progress = create_progress_bar()
     progress_table = create_progress_table(overall_progress, job_progress)
 
-    log_messages = []
     with Live(progress_table, refresh_per_second=10) as live:
         for url in urls:
             if HOST_BASE_LINK in url:
@@ -98,10 +70,6 @@ def process_urls(urls):
 def main():
     """
     Main function to execute the script.
-
-    This function reads a list of URLs from a specified file, processes each URL
-    to download albums while checking for previously downloaded entries, and
-    clears the URL file upon completion.
     """
     clear_terminal()
     urls = read_file(FILE)

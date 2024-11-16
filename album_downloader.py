@@ -15,6 +15,7 @@ import requests
 from bs4 import BeautifulSoup
 from rich.live import Live
 
+from helpers.general_utils import clear_terminal
 from helpers.progress_utils import create_progress_bar, create_progress_table
 from helpers.download_utils import (
     save_image_from_response, save_gif_from_response, manage_running_tasks
@@ -49,8 +50,8 @@ class ArtworkDownloader:
 
         Args:
             url (str): The URL of the artwork.
-            download_path (str, optional): The download directory for saving the
-                                           artwork.
+            download_path (str, optional): The download directory for saving
+                                           the artwork.
         """
         self.url = url
         self.download_path = download_path
@@ -126,9 +127,9 @@ class ArtworkDownloader:
         and processing accordingly.
         """
         illust_type = self.artwork.get('illustType')
-
         if illust_type in (0, 1):
             self.process_artwork_images()
+
         elif illust_type == 2:
             self.process_artwork_gifs()
 
@@ -182,21 +183,22 @@ def fetch_artwork_data(url):
     Fetches the artwork data by making an HTTP request to the provided URL
     and parsing the response.
 
+    Args:
+        url (str): The URL of the artwork page.
+
     Returns:
-        tuple: A tuple containing the artwork ID (str) and the parsed
-               data (dict).
+        tuple: A tuple containing:
+            - artwork_id (str): The extracted artwork ID from the URL.
+            - data (dict): The parsed artwork data as a dictionary.
 
     Raises:
         TypeError: If the URL is not a string.
         ValueError: If the artwork ID is not found in the URL.
-        HTTPError: If the HTTP request fails with a status code other
-                   than 200.
     """
     if not isinstance(url, str):
         raise TypeError('The provided URL is not a string')
 
     response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-
     if response.status_code != 200:
         response.raise_for_status()
 
@@ -208,7 +210,6 @@ def fetch_artwork_data(url):
     data = json.loads(meta_content)
 
     match = re.search(r'artworks/(\d+)', url)
-
     if not match:
         raise ValueError('No artwork ID found')
 
@@ -221,28 +222,20 @@ def download_album(url, overall_progress, job_progress):
 
     Args:
         url (str): The URL of the album to download.
+        overall_progress (Progress): The overall progress tracker to show the
+                                     global download progress.
+        job_progress (Progress): The progress tracker to show the status of
+                                 individual downloads.
 
     Raises:
-        ValueError: If the album ID cannot be retrieved from the URL.
+        ValueError: If the album ID cannot be retrieved from the URL or if any
+                    issue occurs during the download.
     """
     artwork_downloader = ArtworkDownloader(
         url=url, download_path=DOWNLOAD_FOLDER,
         overall_progress=overall_progress, job_progress=job_progress
     )
     artwork_downloader.download()
-
-def clear_terminal():
-    """
-    Clears the terminal screen based on the operating system.
-    """
-    commands = {
-        'nt': 'cls',      # Windows
-        'posix': 'clear'  # macOS and Linux
-    }
-
-    command = commands.get(os.name)
-    if command:
-        os.system(command)
 
 def main():
     """
