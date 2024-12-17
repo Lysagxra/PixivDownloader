@@ -83,9 +83,9 @@ To batch download from multiple album URLs, you can use the `main.py` script. Th
 Example of `URLs.txt`
 
 ```
-https://www.pixiv.net/en/artworks/123012348
-https://www.pixiv.net/en/artworks/122930603
-https://www.pixiv.net/en/artworks/122928025
+https://www.pixiv.net/en/artworks/123398947
+https://www.pixiv.net/en/artworks/123399029
+https://www.pixiv.net/en/artworks/123399604
 ```
 
 2. Run the batch download script:
