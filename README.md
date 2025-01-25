@@ -7,7 +7,7 @@
 ## Features
 
 - Downloads multiple files concurrently.
-- Supports batch downloading via a list of URLs.
+- Supports [batch downloading](https://github.com/Lysagxra/PixivDownloader?tab=readme-ov-file#batch-download) via a list of URLs.
 - Tracks download progress with a progress bar.
 - Avoid duplicats by comparing URLs against a record of already downloaded albums.
 - Automatically creates a directory structure for organized storage.
