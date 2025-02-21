@@ -1,51 +1,28 @@
-"""
-This module provides utility functions for tracking download progress and
-displaying logs using the Rich library. It includes features for creating a
-progress bar, a formatted progress table for monitoring download status, and
-a log table for displaying downloaded messages.
+"""Module that provides utility functions for tracking download progress.
+
+It includes features for creating a progress bar, a formatted progress table for
+monitoring download status, and a log table for displaying downloaded messages.
 """
 
-from rich.table import Table
 from rich.panel import Panel
-from rich.progress import (
-    Progress,
-    SpinnerColumn,
-    BarColumn,
-    TextColumn
-)
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
-TITLE_COLOR = "light_cyan3"
+from .config import TITLE_COLOR
 
-def create_progress_bar():
-    """
-    Creates and returns a progress bar for tracking download progress.
 
-    Returns:
-        Progress: A Progress object configured with relevant columns.
-    """
+def create_progress_bar() -> Progress:
+    """Create a progress bar for tracking download progress."""
     return Progress(
         "{task.description}",
         SpinnerColumn(),
         BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
     )
 
-def create_progress_table(overall_progress, job_progress):
-    """
-    Creates a formatted progress table for tracking the download.
 
-    Parameters:
-        overall_progress (str): A string representing the overall progress of
-                                the download.
-        job_progress (Progress): An instance of a progress tracking object that 
-                                 manages the download progress of individual
-                                 files.
-
-    Returns:
-        Table: A Rich Table object containing a grid layout with two panels:
-               one for overall progress and another for job-specific progress, 
-               each with styled titles and borders.
-    """
+def create_progress_table(overall_progress: Progress, job_progress: Progress) -> Table:
+    """Create a formatted progress table for tracking the download."""
     progress_table = Table.grid()
     progress_table.add_row(
         Panel.fit(
@@ -54,29 +31,21 @@ def create_progress_table(overall_progress, job_progress):
             # Good alternatives: "orange3", "orange4"
             border_style="bright_blue",
             padding=(1, 1),
-            width=40
+            width=40,
         ),
         Panel.fit(
             job_progress,
             title=f"[b {TITLE_COLOR}]Album Progress",
             border_style="medium_purple",
             padding=(1, 1),
-            width=40
-        )
+            width=40,
+        ),
     )
     return progress_table
 
-def create_log_table(log_messages):
-    """
-    Creates a formatted log table to display downloaded messages.
 
-    Parameters:
-        log_messages (Progress): An instance of a progress tracking object.
-
-    Returns:
-        Table: A Rich Table object containing the formatted log panel with 
-               the specified log messages.
-    """
+def create_log_table(log_messages: list[str]) -> Table:
+    """Create a formatted log table to display downloaded messages."""
     log_row = "\n".join([f"• {message}" for message in log_messages])
     log_table = Table.grid()
     log_table.add_row(
@@ -85,7 +54,7 @@ def create_log_table(log_messages):
             title=f"[b {TITLE_COLOR}]Already Downloaded",
             border_style="grey35",
             padding=(1, 1),
-            width=80
-        )
+            width=80,
+        ),
     )
     return log_table
