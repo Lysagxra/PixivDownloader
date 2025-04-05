@@ -16,7 +16,7 @@ GIF_ILLUST_TYPE = 2          # The type for GIF illustrations.
 
 MAX_WORKERS = 4         # Maximum number of concurrent workers for downloading.
 CHUNK_SIZE = 8 * 1024   # The size of each chunk for downloading.
-TIMEOUT = 15            # Timeout duration for requests in seconds.
+TIMEOUT = 20            # Timeout duration for requests in seconds.
 
 # HTTP status codes.
 HTTP_STATUS_OK = 200
@@ -27,8 +27,7 @@ HEADERS = {"Referer": "http://www.pixiv.net/"}
 # Headers tailored for download requests.
 ALT_HEADERS = {
     "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) "
-        "Gecko/20100101 Firefox/115.0"
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0"
     ),
     "Accept": "application/json",
     "Accept-Language": "en-US,en;q=0.5",
