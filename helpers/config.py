@@ -14,17 +14,17 @@ FILE = "URLs.txt"                              # The name of the file containing
 IMAGE_ILLUST_TYPES = (0, 1)  # The types for static images illustrations.
 GIF_ILLUST_TYPE = 2          # The type for GIF illustrations.
 
-TITLE_COLOR = "light_cyan3"  # Color used for displaying titles.
-TASK_COLOR = "light_cyan3"   # Color used for displaying task-related information.
-
-MAX_WORKERS = 10        # Maximum number of concurrent workers for downloading.
-CHUNK_SIZE = 16 * 1024  # The size of each chunk for downloading (16 KB).
-TIMEOUT = 10            # Timeout duration for requests in seconds.
+MAX_WORKERS = 4         # Maximum number of concurrent workers for downloading.
+CHUNK_SIZE = 8 * 1024   # The size of each chunk for downloading.
+TIMEOUT = 15            # Timeout duration for requests in seconds.
 
 # HTTP status codes.
 HTTP_STATUS_OK = 200
 
-# Headers specifically tailored for download requests.
+# Default headers.
+HEADERS = {"Referer": "http://www.pixiv.net/"}
+
+# Headers tailored for download requests.
 ALT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) "

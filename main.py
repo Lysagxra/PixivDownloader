@@ -6,30 +6,10 @@ albums to avoid duplicates, and processes the downloads accordingly.
 
 from pathlib import Path
 
-from rich.live import Live
-from rich.table import Table
-
-from album_downloader import download_album
+from album_downloader import download_album, initialize_managers
 from helpers.config import ALREADY_DOWNLOADED, FILE
 from helpers.file_utils import read_file, write_file
 from helpers.general_utils import clear_terminal
-from helpers.progress_utils import (
-    create_log_table,
-    create_progress_bar,
-    create_progress_table,
-)
-
-
-def manage_combined_table(
-    live: Live, progress_table: Table, log_messages: list[str],
-) -> None:
-    """Manage and updates a table by merging progress data with log messages."""
-    if log_messages:
-        log_table = create_log_table(log_messages)
-        combined_table = Table.grid()
-        combined_table.add_row(progress_table)
-        combined_table.add_row(log_table)
-        live.update(combined_table)
 
 
 def process_urls(urls: list[str]) -> None:
@@ -38,24 +18,23 @@ def process_urls(urls: list[str]) -> None:
         write_file(ALREADY_DOWNLOADED)
 
     already_downloaded_albums = set(read_file(ALREADY_DOWNLOADED))
-    log_messages = []
+    live_manager = initialize_managers()
 
-    overall_progress = create_progress_bar()
-    job_progress = create_progress_bar()
-    progress_table = create_progress_table(overall_progress, job_progress)
-
-    with Live(progress_table, refresh_per_second=10) as live:
+    with live_manager.live:
         for url in urls:
             if "www.pixiv.net" in url:
                 to_download = url not in already_downloaded_albums
 
                 if to_download:
-                    download_album(url, overall_progress, job_progress)
+                    download_album(url, live_manager)
                     write_file(ALREADY_DOWNLOADED, url, mode="a")
                 else:
-                    log_messages.append(url)
-
-        manage_combined_table(live, progress_table, log_messages)
+                    album_id = url.split("/")[-1]
+                    live_manager.update_log(
+                        "Skipped download",
+                        f"Album {album_id} has already been downloaded.",
+                    )
+        live_manager.stop()
 
 
 def main() -> None:

@@ -14,16 +14,14 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
-from rich.live import Live
-from rich.progress import Progress
 
 from helpers.config import (
     DOWNLOAD_FOLDER,
     GIF_ILLUST_TYPE,
+    HEADERS,
     HTTP_STATUS_OK,
     IMAGE_ILLUST_TYPES,
     MAX_WORKERS,
-    TASK_COLOR,
 )
 from helpers.download_utils import (
     manage_running_tasks,
@@ -31,7 +29,9 @@ from helpers.download_utils import (
     save_image_from_response,
 )
 from helpers.general_utils import clear_terminal
-from helpers.progress_utils import create_progress_bar, create_progress_table
+from helpers.managers.live_manager import LiveManager
+from helpers.managers.log_manager import LoggerTable
+from helpers.managers.progress_manager import ProgressManager
 
 
 class ArtworkDownloader:
@@ -41,14 +41,12 @@ class ArtworkDownloader:
         self,
         url: str,
         download_path: str,
-        overall_progress: Progress,
-        job_progress: Progress,
+        live_manager: LiveManager,
     ) -> None:
         """Initialize the ArtworkDownloader."""
         self.url = url
         self.download_path = download_path
-        self.overall_progress = overall_progress
-        self.job_progress = job_progress
+        self.live_manager = live_manager
         self.artwork = None
         self.artwork_id = None
         self.data = None
@@ -77,20 +75,18 @@ class ArtworkDownloader:
         This method parses the metadata, identifies the artwork, and triggers
         downloading of either images or GIFs based on theartwork type.
         """
-        (self.artwork_id, self.data) = fetch_artwork_data(self.url)
-
+        self.artwork_id, self.data = self.fetch_artwork_data()
         if "illust" in self.data:
             self.process_artwork_from_data()
 
     def create_download_directory(self) -> str:
         """Create a directory to store the downloaded artwork."""
         page_count = self.artwork.get("pageCount")
-
-        if page_count > 1:
-            download_path = Path(DOWNLOAD_FOLDER) / self.artwork_id
-        else:
-            download_path = self.download_path
-
+        download_path = (
+            Path(DOWNLOAD_FOLDER) / self.artwork_id
+            if page_count > 1
+            else self.download_path
+        )
         Path(download_path).mkdir(parents=True, exist_ok=True)
         return download_path
 
@@ -109,27 +105,14 @@ class ArtworkDownloader:
         futures = {}
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            overall_task = self.overall_progress.add_task(
-                f"[{TASK_COLOR}]{self.artwork_id}",
-                total=images,
-                visible=True,
+            self.live_manager.add_overall_task(
+                description=self.artwork_id,
+                num_tasks=images,
             )
-
             for image in range(images):
-                task = self.job_progress.add_task(
-                    f"[{TASK_COLOR}]Picture {image + 1}/{images}",
-                    total=100,
-                    visible=False,
-                )
-
+                task = self.live_manager.add_task(current_task=image)
                 image_info = (self.artwork, image)
-                task_info = (
-                    self.job_progress,
-                    self.overall_progress,
-                    task,
-                    overall_task,
-                )
-
+                task_info = (self.live_manager, task)
                 future = executor.submit(
                     save_image_from_response,
                     image_info,
@@ -137,60 +120,62 @@ class ArtworkDownloader:
                     task_info,
                 )
                 futures[future] = task
-                manage_running_tasks(futures, self.job_progress)
+                manage_running_tasks(futures, self.live_manager)
 
     def process_artwork_gifs(self) -> None:
         """Download the GIF of the artwork."""
-        overall_task = self.overall_progress.add_task(
-            f"[{TASK_COLOR}]{self.artwork_id}",
-            total=1,
-            visible=True,
+        self.live_manager.add_overall_task(
+            description=self.artwork_id,
+            num_tasks=1,
         )
         save_gif_from_response(
             self.artwork,
             self.download_path,
-            (self.job_progress, self.overall_progress, 0, overall_task),
+            (self.live_manager, 0),
         )
 
 
-def fetch_artwork_data(url: str) -> tuple:
-    """Fetch the artwork data by making an HTTP request to the provided URL."""
-    if not isinstance(url, str):
-        logging.exception("The provided URL is not a string")
-        sys.exit(1)
+    def fetch_artwork_data(self) -> tuple:
+        """Fetch the artwork data by making an HTTP request to the provided URL."""
+        if not isinstance(self.url, str):
+            logging.exception("The provided URL is not a string")
+            sys.exit(1)
 
-    headers = {"Referer": "http://www.pixiv.net/"}
-    response = requests.get(url, headers=headers, timeout=10)
-    if response.status_code != HTTP_STATUS_OK:
-        response.raise_for_status()
+        response = requests.get(self.url, headers=HEADERS, timeout=10)
+        if response.status_code != HTTP_STATUS_OK:
+            response.raise_for_status()
 
-    soup = BeautifulSoup(response.content, "html.parser")
+        soup = BeautifulSoup(response.content, "html.parser")
+        meta_content = soup.find("meta", {"id": "meta-preload-data"}).get("content")
+        data = json.loads(meta_content)
 
-    meta_content = soup.find("meta", {"id": "meta-preload-data"}).get("content")
-    data = json.loads(meta_content)
+        match = re.search(r"artworks/(\d+)", self.url)
+        if not match:
+            logging.exception("No artwork ID found")
+            sys.exit(1)
 
-    match = re.search(r"artworks/(\d+)", url)
-    if not match:
-        logging.exception("No artwork ID found")
-        sys.exit(1)
-
-    artwork_id = match.group(1)
-    return artwork_id, data
+        artwork_id = match.group(1)
+        return artwork_id, data
 
 
 def download_album(
     url: str,
-    overall_progress: Progress,
-    job_progress: Progress,
+    live_manager: LiveManager,
 ) -> None:
     """Download an album from the provided URL."""
     artwork_downloader = ArtworkDownloader(
         url=url,
         download_path=DOWNLOAD_FOLDER,
-        overall_progress=overall_progress,
-        job_progress=job_progress,
+        live_manager=live_manager,
     )
     artwork_downloader.download()
+
+
+def initialize_managers(*, disable_ui: bool = False) -> LiveManager:
+    """Initialize and return the managers for progress tracking and logging."""
+    progress_manager = ProgressManager(task_name="Album", item_description="File")
+    logger_table = LoggerTable()
+    return LiveManager(progress_manager, logger_table, disable_ui=disable_ui)
 
 
 def main() -> None:
@@ -204,12 +189,10 @@ def main() -> None:
     clear_terminal()
     url = sys.argv[1]
 
-    overall_progress = create_progress_bar()
-    job_progress = create_progress_bar()
-    progress_table = create_progress_table(overall_progress, job_progress)
-
-    with Live(progress_table, refresh_per_second=10):
-        download_album(url, overall_progress, job_progress)
+    live_manager = initialize_managers()
+    with live_manager.live:
+        download_album(url, live_manager)
+        live_manager.stop()
 
 
 if __name__ == "__main__":
