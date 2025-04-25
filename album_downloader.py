@@ -14,6 +14,8 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
+from rich.live import Live
+from rich.progress import Progress
 
 from helpers.config import (
     DOWNLOAD_FOLDER,
@@ -22,6 +24,7 @@ from helpers.config import (
     HTTP_STATUS_OK,
     IMAGE_ILLUST_TYPES,
     MAX_WORKERS,
+    TASK_COLOR,
 )
 from helpers.download_utils import (
     manage_running_tasks,
@@ -29,9 +32,7 @@ from helpers.download_utils import (
     save_image_from_response,
 )
 from helpers.general_utils import clear_terminal
-from helpers.managers.live_manager import LiveManager
-from helpers.managers.log_manager import LoggerTable
-from helpers.managers.progress_manager import ProgressManager
+from helpers.progress_utils import create_progress_bar, create_progress_table
 
 
 class ArtworkDownloader:
@@ -41,12 +42,14 @@ class ArtworkDownloader:
         self,
         url: str,
         download_path: str,
-        live_manager: LiveManager,
+        overall_progress: Progress,
+        job_progress: Progress,
     ) -> None:
         """Initialize the ArtworkDownloader."""
         self.url = url
         self.download_path = download_path
-        self.live_manager = live_manager
+        self.overall_progress = overall_progress
+        self.job_progress = job_progress
         self.artwork = None
         self.artwork_id = None
         self.data = None
@@ -105,14 +108,24 @@ class ArtworkDownloader:
         futures = {}
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            self.live_manager.add_overall_task(
-                description=self.artwork_id,
-                num_tasks=images,
+            overall_task = self.overall_progress.add_task(
+                f"[{TASK_COLOR}]{self.artwork_id}",
+                total=images,
+                visible=True,
             )
             for image in range(images):
-                task = self.live_manager.add_task(current_task=image)
+                task = self.job_progress.add_task(
+                    f"[{TASK_COLOR}]Picture {image + 1}/{images}",
+                    total=100,
+                    visible=False,
+                )
                 image_info = (self.artwork, image)
-                task_info = (self.live_manager, task)
+                task_info = (
+                    self.job_progress,
+                    self.overall_progress,
+                    task,
+                    overall_task,
+                )
                 future = executor.submit(
                     save_image_from_response,
                     image_info,
@@ -120,18 +133,19 @@ class ArtworkDownloader:
                     task_info,
                 )
                 futures[future] = task
-                manage_running_tasks(futures, self.live_manager)
+                manage_running_tasks(futures, self.job_progress)
 
     def process_artwork_gifs(self) -> None:
         """Download the GIF of the artwork."""
-        self.live_manager.add_overall_task(
-            description=self.artwork_id,
-            num_tasks=1,
+        overall_task = self.overall_progress.add_task(
+            f"[{TASK_COLOR}]{self.artwork_id}",
+            total=1,
+            visible=True,
         )
         save_gif_from_response(
             self.artwork,
             self.download_path,
-            (self.live_manager, 0),
+            (self.job_progress, self.overall_progress, 0, overall_task),
         )
 
 
@@ -160,22 +174,17 @@ class ArtworkDownloader:
 
 def download_album(
     url: str,
-    live_manager: LiveManager,
+    overall_progress: Progress,
+    job_progress: Progress,
 ) -> None:
     """Download an album from the provided URL."""
     artwork_downloader = ArtworkDownloader(
         url=url,
         download_path=DOWNLOAD_FOLDER,
-        live_manager=live_manager,
+        overall_progress=overall_progress,
+        job_progress=job_progress,
     )
     artwork_downloader.download()
-
-
-def initialize_managers(*, disable_ui: bool = False) -> LiveManager:
-    """Initialize and return the managers for progress tracking and logging."""
-    progress_manager = ProgressManager(task_name="Album", item_description="File")
-    logger_table = LoggerTable()
-    return LiveManager(progress_manager, logger_table, disable_ui=disable_ui)
 
 
 def main() -> None:
@@ -189,10 +198,12 @@ def main() -> None:
     clear_terminal()
     url = sys.argv[1]
 
-    live_manager = initialize_managers()
-    with live_manager.live:
-        download_album(url, live_manager)
-        live_manager.stop()
+    overall_progress = create_progress_bar()
+    job_progress = create_progress_bar()
+    progress_table = create_progress_table(overall_progress, job_progress)
+
+    with Live(progress_table, refresh_per_second=10):
+        download_album(url, overall_progress, job_progress)
 
 
 if __name__ == "__main__":

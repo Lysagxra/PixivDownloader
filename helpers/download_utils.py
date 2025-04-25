@@ -14,8 +14,7 @@ from pathlib import Path
 import requests
 from PIL import Image
 from requests import Response
-
-from helpers.managers.live_manager import LiveManager
+from rich.progress import Progress
 
 from .config import ALT_HEADERS, CHUNK_SIZE, TIMEOUT
 from .pixiv_utils import generate_gif_url, generate_image_url
@@ -41,7 +40,7 @@ def save_image_from_response(
         sys.exit(1)
 
     artwork_id = artwork.get("id")
-    file_extension = Path(image_url).suffix
+    file_extension = os.path.splitext(image_url)[-1]
     formatted_filename = f"{artwork_id}_p{image}_master1200{file_extension}"
     final_path = Path(download_path) / formatted_filename
     download_with_progress(response, final_path, task_info)
@@ -107,20 +106,20 @@ def save_gif_from_response(artwork: dict, download_path: str, task_info: tuple) 
     extract_gif(artwork_id, zip_path, download_path)
 
 
-def manage_running_tasks(futures: dict, live_manager: LiveManager) -> None:
-    """Manage the status of running tasks and update their progress."""
+def manage_running_tasks(futures: dict, job_progress: Progress) -> None:
+    """Manage and updates the status of running tasks."""
     while futures:
         for future in list(futures.keys()):
             if future.running():
-                task_id = futures.pop(future)
-                live_manager.update_task(task_id, visible=True)
+                task = futures.pop(future)
+                job_progress.update(task, visible=True)
 
 
 def download_with_progress(
     response: Response, download_path: str, task_info: tuple, *, is_gif: bool = False,
 ) -> None:
     """Download content from a response object and displays a progress bar."""
-    live_manager, task = task_info
+    job_progress, overall_progress, task, overall_task = task_info
     file_size = int(response.headers.get("Content-Length", -1))
     total_downloaded = 0
 
@@ -131,4 +130,9 @@ def download_with_progress(
                 total_downloaded += len(chunk)
                 progress_percentage = (total_downloaded / file_size) * 100
                 if not is_gif:
-                    live_manager.update_task(task, completed=progress_percentage)
+                    job_progress.update(task, completed=progress_percentage)
+
+    if not is_gif:
+        job_progress.update(task, completed=100, visible=False)
+
+    overall_progress.advance(overall_task)
